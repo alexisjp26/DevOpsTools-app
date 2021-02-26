@@ -1,6 +1,8 @@
 pipeline {
     agent none
 
+    tools {nodejs "node"}
+
     environment {
         registry = "alxz26/devops" 
         registryCredential = 'dockerhub'
@@ -44,12 +46,12 @@ pipeline {
                 script {
                     def scannerHome = tool 'sonarqube';
                     withSonarQubeEnv("SonarServer") {
-                    sh "${tool("sonarqube")}/bin/sonar-scanner \
+                    sh """${tool("sonarqube")}/bin/sonar-scanner \
                     -Dsonar.projectKey=test-node-js \
                     -Dsonar.sources=. \
                     -Dsonar.css.node=. \
                     -Dsonar.host.url=http://192.168.100.17:9000 \
-                    -Dsonar.login=2283b0c9d092de815f199e8b1bcde4113fb40c69"
+                    -Dsonar.login=2283b0c9d092de815f199e8b1bcde4113fb40c69"""
                     }
                 }
 
