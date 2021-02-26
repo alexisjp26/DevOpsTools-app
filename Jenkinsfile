@@ -1,6 +1,5 @@
 pipeline {
-    agent none
-
+    agent any
     tools {nodejs "node"}
 
     environment {
@@ -9,7 +8,7 @@ pipeline {
         dockerImage = ''
         branchName = ''
         version = ''
-    }
+	}
     options {
         timestamps()
         skipDefaultCheckout()      // Don't checkout automatically
@@ -22,26 +21,16 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Build') {
-            agent {
-                docker {
-                    image 'node:14.16.0-alpine3.12'
-                    //args '-v /Users/gdelgadoh/.m2:/root/.m2' 
-                }
-            }  
-            steps {
+        stage('Code Quality Check via SonarQube') 
+        {
+            agent any
+            steps{
                 script {
-                    branchName = ''
+                    branchName = ""
                     if (!env.BRANCH_NAME.contains("main")) {
-                        branchName = env.BRANCH_NAME
+                        branchName = "-Dsonar.branch.name=${env.BRANCH_NAME}"
                     }
-                 }
-                echo "Nombre de branch: ${branchName}"
-
-                //echo 'Cobertura'
-                //sh 'mvn org.jacoco:jacoco-maven-plugin:prepare-agent install' 
-                //jacoco execPattern: '**/target/**.exec'
-                //junit '**/target/surefire-reports/*.xml'
+                 }                
                 echo 'Quality Gate'  
                 script {
                     def scannerHome = tool 'sonarqube';
@@ -53,52 +42,57 @@ pipeline {
                     -Dsonar.host.url=http://192.168.100.17:9000 \
                     -Dsonar.login=2283b0c9d092de815f199e8b1bcde4113fb40c69"""
                     }
-                }
-
-                //echo 'Quality Gate'                
-                //withSonarQubeEnv('SonarServer') {
-                    //sh "mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.branch.name=${branchName}"
-                  // }    
+                }  
                 sleep(30)               
                    timeout(time: 1, unit: 'MINUTES') { // Just in case something goes wrong, pipeline will be killed after a timeout
                     waitForQualityGate abortPipeline: true
-                   }
+                   }                 
+            }
+        }
+        stage('Build') {
+            agent {
+		        docker {
+                    image 'node:14.16.0-alpine3.12'
+                    //args '-v /Users/gdelgadoh/.m2:/root/.m2' 
+		        }
+    		}  
+            steps {
+                echo "Valor para sonar.branch.name: ${branchName}"
 
                 echo 'Compilar'
                 sh 'npm install'
                 echo 'Build'
-                  // sh 'mvn clean package -Dmaven.test.skip=true' 
             }
         }
         stage('Build Docker Image') { 
-               agent any
+       		agent any
             steps {
-                script {
+            	script {
 
-                    if ( branchName.equals("") ) {
+                    if ( env.BRANCH_NAME.equals("main") ) {
 
                         version = ":$BUILD_NUMBER"
 
                     } else {
-                        version = ":" + branchName.replace("/", "-") + "-$BUILD_NUMBER"
+                        version = ":" + env.BRANCH_NAME.replace("/", "-") + "-$BUILD_NUMBER"
                     }
 
-                    dockerImageName = registry + version
-                    dockerImage = docker.build "${dockerImageName}"
-                    docker.withRegistry( '', registryCredential ) {
-                        dockerImage.push()
-                    }
+                	dockerImageName = registry + version
+                	dockerImage = docker.build "${dockerImageName}"
+                	docker.withRegistry( '', registryCredential ) {
+                		dockerImage.push()
+                	}
 
-                    if (branchName.equals("")) {
+                    if (env.BRANCH_NAME.equals("master")) {
                         docker.withRegistry( '', registryCredential ) {
                             dockerImage.push('latest')
-                        }
+                	    }
                         sh "docker rmi " + ${registry} + "latest"
                     }
-                    sh "docker rmi $registry$version"     
-                } 
-                
-                             
+                    sh "docker rmi $registry$version"	 
+            	} 
+            	
+                	         
             }
         } 
 
