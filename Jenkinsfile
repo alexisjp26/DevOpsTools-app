@@ -25,7 +25,7 @@ pipeline {
         {
             steps{
                 script {
-                    branchName = ""
+                    branchName = "main"
                     if (!env.BRANCH_NAME.contains("main")) {
                         branchName = "-Dsonar.branch.name=${env.BRANCH_NAME}"
                     }
