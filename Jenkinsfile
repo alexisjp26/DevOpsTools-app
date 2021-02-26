@@ -42,11 +42,14 @@ pipeline {
                 //junit '**/target/surefire-reports/*.xml'
                 echo 'Quality Gate'  
                 script {
-                    //def scannerHome = tool 'sonarqube';
+                    def scannerHome = tool 'sonarqube';
                     withSonarQubeEnv("SonarServer") {
-                    sh "-Dsonar.projectKey=${branchName} \
+                    sh "${tool("sonarqube")}/bin/sonar-scanner \
+                    -Dsonar.projectKey=test-node-js \
                     -Dsonar.sources=. \
-                    -Dsonar.css.node=. \"
+                    -Dsonar.css.node=. \
+                    -Dsonar.host.url=http://192.168.100.17:9000 \
+                    -Dsonar.login=2283b0c9d092de815f199e8b1bcde4113fb40c69"
                     }
                 }
 
