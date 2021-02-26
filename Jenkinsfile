@@ -42,9 +42,9 @@ pipeline {
                 //junit '**/target/surefire-reports/*.xml'
                 echo 'Quality Gate'  
                 script {
-                    def scannerHome = tool 'sonarqube';
+                    //def scannerHome = tool 'sonarqube';
                     withSonarQubeEnv("SonarServer") {
-                    sh "${tool("sonarqube")}/bin/sonar-scanner \
+                    sh "sonar-scanner \
                     -Dsonar.projectKey=${branchName} \
                     -Dsonar.sources=. \
                     -Dsonar.css.node=. \
