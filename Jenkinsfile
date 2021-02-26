@@ -21,22 +21,21 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Code Quality Check via SonarQube') 
+        stage('SonarQube Analysis') 
         {
-            agent any
             steps{
                 script {
                     branchName = ""
                     if (!env.BRANCH_NAME.contains("main")) {
                         branchName = "-Dsonar.branch.name=${env.BRANCH_NAME}"
                     }
+                    echo "Valor para sonar.branch.name: ${branchName}"
                  }                
-                echo 'Quality Gate'  
                 script {
                     def scannerHome = tool 'sonarqube';
                     withSonarQubeEnv("SonarServer") {
                     sh """${tool("sonarqube")}/bin/sonar-scanner \
-                    -Dsonar.projectKey=test-node-js \
+                    -Dsonar.projectKey=${branchName} \
                     -Dsonar.sources=. \
                     -Dsonar.css.node=. \
                     -Dsonar.host.url=http://192.168.100.17:9000 \
@@ -44,9 +43,10 @@ pipeline {
                     }
                 }  
                 sleep(30)               
-                   timeout(time: 1, unit: 'MINUTES') { // Just in case something goes wrong, pipeline will be killed after a timeout
-                    waitForQualityGate abortPipeline: true
-                   }                 
+                def qualitygate = waitForQualityGate();
+                if (qualitygate.status != "OK") {
+                    error "Pipeline aborted due to quality gate coverage failure: ${qualitygate.status}"
+                }         
             }
         }
         stage('Build') {
@@ -57,8 +57,6 @@ pipeline {
 		        }
     		}  
             steps {
-                echo "Valor para sonar.branch.name: ${branchName}"
-
                 echo 'Compilar'
                 sh 'npm install'
                 echo 'Build'
