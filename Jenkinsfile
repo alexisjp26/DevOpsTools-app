@@ -55,13 +55,18 @@ pipeline {
             agent {
 		        docker {
                     image 'node:14.16.0-alpine3.12'
-                    //args '-v /Users/gdelgadoh/.m2:/root/.m2' 
+                    arg '-p 3000:3000'
 		        }
     		}  
             steps {
                 echo 'Install dependencies'
                 sh 'npm install'
+                
                 echo 'Build'
+                sh 'node tools-api.js'
+
+                echo 'Unit Testing'
+                sh 'npm test'
             }
         }
         stage('Build Docker Image') { 
