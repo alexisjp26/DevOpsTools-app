@@ -59,7 +59,7 @@ pipeline {
 		        }
     		}  
             steps {
-                echo 'Compilar'
+                echo 'Install dependencies'
                 sh 'npm install'
                 echo 'Build'
             }
