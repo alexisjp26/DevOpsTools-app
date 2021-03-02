@@ -21,47 +21,53 @@ pipeline {
                 checkout scm
             }
         }
-        stage('SonarQube Analysis') 
-        {
-            steps{
-                script {
-                    branchName = "main"
-                    if (!env.BRANCH_NAME.contains("main")) {
-                        branchName = "-Dsonar.branch.name=${env.BRANCH_NAME}"
-                    }
-                    echo "Valor para sonar.branch.name: ${branchName}"
-                 }                
-                script {
-                    def scannerHome = tool 'sonarqube';
-                    withSonarQubeEnv("SonarServer") {
-                    sh """${tool("sonarqube")}/bin/sonar-scanner \
-                    -Dsonar.projectKey=${branchName} \
-                    -Dsonar.sources=. \
-                    -Dsonar.css.node=. \
-                    -Dsonar.host.url=http://192.168.100.17:9000 \
-                    -Dsonar.login=2283b0c9d092de815f199e8b1bcde4113fb40c69"""
-                    }
-                }  
-                sleep(30) 
-                script{              
-                    def qualitygate = waitForQualityGate();
-                    if (qualitygate.status != "OK") {
-                        error "Pipeline aborted due to quality gate coverage failure: ${qualitygate.status}"
-                    }   
-                }      
-            }
-        }
+        // stage('SonarQube Analysis') 
+        // {
+        //     steps{
+        //         script {
+        //             branchName = ""
+        //             if (!env.BRANCH_NAME.contains("main")) {
+        //                 branchName = "-Dsonar.branch.name=${env.BRANCH_NAME}"
+        //             }
+        //             echo "Valor para sonar.branch.name: ${branchName}"
+        //          }                
+        //         script {
+        //             def scannerHome = tool 'sonarqube';
+        //             withSonarQubeEnv("SonarServer") {
+        //             sh """${tool("sonarqube")}/bin/sonar-scanner ${branchName} \
+        //             -Dsonar.projectKey=DevOpsTools-app \
+        //             -Dsonar.sources=. \
+        //             -Dsonar.css.node=. \
+        //             -Dsonar.host.url=http://192.168.100.48:9000 \
+        //             -Dsonar.login=2283b0c9d092de815f199e8b1bcde4113fb40c69"""
+        //             }
+        //         }  
+        //         sleep(30) 
+        //         script{              
+        //             def qualitygate = waitForQualityGate();
+        //             if (qualitygate.status != "OK") {
+        //                 error "Pipeline aborted due to quality gate coverage failure: ${qualitygate.status}"
+        //             }   
+        //         }      
+        //     }
+        // }
         stage('Build') {
             agent {
 		        docker {
                     image 'node:14.16.0-alpine3.12'
-                    //args '-v /Users/gdelgadoh/.m2:/root/.m2' 
+                    args '-p 3001:3001'
 		        }
     		}  
             steps {
-                echo 'Compilar'
+                echo 'Install dependencies'
                 sh 'npm install'
+
                 echo 'Build'
+                sh 'node tools-api.js &'
+                sleep(10);
+
+                echo 'Unit Testing'
+                sh 'npm test'
             }
         }
         stage('Build Docker Image') { 
