@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "start": "node tools-api.js"
+    "start": "node src/tools-api.js"
   },
   "author": "Alexis Jimenez",
   "license": "ISC",
